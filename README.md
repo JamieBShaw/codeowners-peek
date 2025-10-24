@@ -6,9 +6,9 @@
 
 **Instantly see who owns the code you're reading**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/yourusername/codeowners-peek)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/JamieBShaw/codeowners-peek)
 [![License](https://img.shields.io/badge/license-ISC-green.svg)](./LICENSE)
-[![VS Code Marketplace](https://img.shields.io/badge/VS%20Code-Marketplace-007ACC.svg)](https://marketplace.visualstudio.com/items?itemName=your-name-or-org.codeowners-peek)
+[![GitHub](https://img.shields.io/github/stars/JamieBShaw/codeowners-peek?style=social)](https://github.com/JamieBShaw/codeowners-peek)
 
 </div>
 
@@ -221,7 +221,7 @@ Track these to measure impact:
 
 ```bash
 # Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/JamieBShaw/codeowners-peek.git
 cd codeowners-peek
 
 # Install dependencies

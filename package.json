@@ -10,11 +10,28 @@
     "format": "biome format --write .",
     "lint": "biome lint .",
     "check": "biome check .",
-    "build:vsix": "pnpm run build && vsce package --no-dependencies --allow-missing-repository --baseContentUrl https://github.com/JamieBShaw/codeowners-peek/raw/main"
+    "build:vsix": "pnpm run build && vsce package --no-dependencies"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "codeowners",
+    "code-ownership",
+    "github",
+    "gitlab",
+    "team",
+    "ownership",
+    "status-bar",
+    "codelens"
+  ],
+  "author": "Jamie Shaw",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JamieBShaw/codeowners-peek.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JamieBShaw/codeowners-peek/issues"
+  },
+  "homepage": "https://github.com/JamieBShaw/codeowners-peek#readme",
   "dependencies": {
     "minimatch": "^10.0.3"
   },
@@ -29,7 +46,7 @@
     "vscode": "^1.1.37"
   },
   "displayName": "Codeowners Peek",
-  "publisher": "your-name-or-org",
+  "publisher": "jamiebshaw-dev",
   "icon": "assets/icon-128.png",
   "galleryBanner": {
     "color": "#ffffff",
@@ -39,7 +56,8 @@
     "vscode": "^1.90.0"
   },
   "categories": [
-    "Other"
+    "Other",
+    "Programming Languages"
   ],
   "activationEvents": [
     "onStartupFinished",
