@@ -107,6 +107,122 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(copyDisposable);
 
+  // Show all teams command
+  const showTeamsDisposable = vscode.commands.registerCommand("codeowners.showTeams", async () => {
+    await ensureIndexLoaded();
+
+    if (!codeownersIndex.file) {
+      vscode.window.showInformationMessage("No CODEOWNERS file found in this workspace.");
+      return;
+    }
+
+    const teams = extractAllTeams();
+    const stats = getTeamStats();
+
+    // Create output
+    const output = teams
+      .map((team) => {
+        const count = stats.get(team) || 0;
+        const config = getTeamConfig(team);
+        const displayName = config?.displayName || team;
+        const slack = config?.slack ? ` (${config.slack})` : "";
+        return `${displayName}${slack}: ${count} ${count === 1 ? "pattern" : "patterns"}`;
+      })
+      .join("\n");
+
+    const message = `Teams in CODEOWNERS:\n\n${output}\n\nTotal: ${teams.length} teams`;
+    vscode.window.showInformationMessage(message, { modal: true });
+  });
+
+  context.subscriptions.push(showTeamsDisposable);
+
+  // Suggest ownership change command
+  const suggestOwnershipDisposable = vscode.commands.registerCommand(
+    "codeowners.suggestOwnership",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage("Open a file to suggest ownership.");
+        return;
+      }
+
+      await ensureIndexLoaded();
+
+      const root = workspaceRoot();
+      if (!root) {
+        vscode.window.showInformationMessage("No workspace folder.");
+        return;
+      }
+
+      const rel = path.relative(root, editor.document.uri.fsPath).replace(/\\/g, "/");
+
+      if (!codeownersIndex.file) {
+        vscode.window.showInformationMessage("No CODEOWNERS file found in this workspace.");
+        return;
+      }
+
+      const teams = extractAllTeams();
+      if (teams.length === 0) {
+        vscode.window.showInformationMessage("No teams found in CODEOWNERS.");
+        return;
+      }
+
+      // Show quick pick of teams
+      const selectedTeam = await vscode.window.showQuickPick(
+        teams.map((team) => {
+          const config = getTeamConfig(team);
+          return {
+            label: team,
+            description: config?.displayName || undefined,
+            detail: config?.description || undefined,
+          };
+        }),
+        {
+          placeHolder: "Select team to assign ownership",
+          matchOnDescription: true,
+          matchOnDetail: true,
+        },
+      );
+
+      if (!selectedTeam) return;
+
+      const currentMatch = ownersFor(rel);
+      const currentOwners = currentMatch
+        ? `Current: ${currentMatch.owners.join(", ")}`
+        : "Currently unowned";
+
+      // Generate suggested pattern - use specific file path for precision
+      const suggestedLine = `${rel} ${selectedTeam.label}`;
+
+      const actions = ["Copy to Clipboard", "Open CODEOWNERS", "Close"];
+      const message = `${currentOwners}\n\nSuggested rule to add to CODEOWNERS:\n${suggestedLine}\n\n(Add this at the end of CODEOWNERS for highest precedence)`;
+
+      const selection = await vscode.window.showInformationMessage(
+        message,
+        { modal: true },
+        ...actions,
+      );
+
+      if (selection === "Copy to Clipboard") {
+        await vscode.env.clipboard.writeText(suggestedLine);
+        vscode.window.showInformationMessage("Pattern copied to clipboard");
+      } else if (selection === "Open CODEOWNERS" && codeownersIndex.file) {
+        const doc = await vscode.workspace.openTextDocument(codeownersIndex.file);
+        await vscode.window.showTextDocument(doc);
+        // Move cursor to end
+        const lineCount = doc.lineCount;
+        const position = new vscode.Position(lineCount, 0);
+        const editor = vscode.window.activeTextEditor;
+        if (editor) {
+          editor.selection = new vscode.Selection(position, position);
+          editor.revealRange(new vscode.Range(position, position));
+        }
+      }
+    },
+  );
+
+  context.subscriptions.push(suggestOwnershipDisposable);
+
   // Add CodeLens provider
   const enableCodeLens = config.get<boolean>("enableCodeLens", true);
   if (enableCodeLens) {
@@ -246,6 +362,41 @@ function parseCODEOWNERS(content: string): OwnersMatch[] {
     out.push({ pattern, owners, line: idx + 1 });
   });
   return out;
+}
+
+// Extract all unique teams/owners from CODEOWNERS
+function extractAllTeams(): string[] {
+  const teams = new Set<string>();
+  for (const entry of codeownersIndex.entries) {
+    for (const owner of entry.owners) {
+      teams.add(owner);
+    }
+  }
+  return Array.from(teams).sort();
+}
+
+// Get statistics about team ownership patterns
+function getTeamStats(): Map<string, number> {
+  const stats = new Map<string, number>();
+  for (const entry of codeownersIndex.entries) {
+    for (const owner of entry.owners) {
+      stats.set(owner, (stats.get(owner) || 0) + 1);
+    }
+  }
+  return stats;
+}
+
+// Get team configuration from settings (optional metadata)
+interface TeamConfig {
+  displayName?: string;
+  slack?: string;
+  description?: string;
+}
+
+function getTeamConfig(team: string): TeamConfig | undefined {
+  const config = vscode.workspace.getConfiguration("codeowners");
+  const teams = config.get<Record<string, TeamConfig>>("teams", {});
+  return teams[team];
 }
 
 function ownersFor(relPathFromRoot: string): OwnersMatch | undefined {

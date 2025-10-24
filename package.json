@@ -1,6 +1,6 @@
 {
   "name": "codeowners-peek",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Show CODEOWNERS for the active file (status bar, CodeLens, Explorer badge).",
   "main": "./out/extension.js",
   "scripts": {
@@ -62,7 +62,9 @@
   "activationEvents": [
     "onStartupFinished",
     "onCommand:codeowners.peek",
-    "onCommand:codeowners.copyOwners"
+    "onCommand:codeowners.copyOwners",
+    "onCommand:codeowners.showTeams",
+    "onCommand:codeowners.suggestOwnership"
   ],
   "contributes": {
     "commands": [
@@ -73,6 +75,14 @@
       {
         "command": "codeowners.copyOwners",
         "title": "CODEOWNERS: Copy Owners"
+      },
+      {
+        "command": "codeowners.showTeams",
+        "title": "CODEOWNERS: Show All Teams"
+      },
+      {
+        "command": "codeowners.suggestOwnership",
+        "title": "CODEOWNERS: Suggest Ownership Change"
       }
     ],
     "configuration": {
@@ -103,6 +113,31 @@
           "type": "boolean",
           "default": true,
           "description": "Show ownership badge and tooltip in the Explorer."
+        },
+        "codeowners.teams": {
+          "type": "object",
+          "default": {},
+          "description": "Optional metadata for teams (display names, Slack channels, descriptions)",
+          "patternProperties": {
+            "^@.*": {
+              "type": "object",
+              "properties": {
+                "displayName": {
+                  "type": "string",
+                  "description": "Human-readable team name"
+                },
+                "slack": {
+                  "type": "string",
+                  "description": "Slack channel (e.g., #team-platform)"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "Team description"
+                }
+              }
+            }
+          },
+          "additionalProperties": false
         }
       }
     }

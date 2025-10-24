@@ -78,6 +78,8 @@ The extension watches your CODEOWNERS file and automatically reloads when it cha
 3. Select the downloaded `.vsix` file
 4. Reload VS Code when prompted
 
+Or right click `.vsix` file and click "Install Extension VSIX"
+
 ### From Marketplace (Coming Soon)
 Search for "Codeowners Peek" in the Extensions marketplace and click Install.
 
