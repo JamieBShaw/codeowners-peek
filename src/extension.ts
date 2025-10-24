@@ -223,6 +223,80 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(suggestOwnershipDisposable);
 
+  // Change ownership command (with file mutation)
+  const changeOwnershipDisposable = vscode.commands.registerCommand(
+    "codeowners.changeOwnership",
+    async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor) {
+        vscode.window.showInformationMessage("Open a file to change ownership.");
+        return;
+      }
+
+      await ensureIndexLoaded();
+
+      const root = workspaceRoot();
+      if (!root) {
+        vscode.window.showInformationMessage("No workspace folder.");
+        return;
+      }
+
+      const rel = path.relative(root, editor.document.uri.fsPath).replace(/\\/g, "/");
+
+      if (!codeownersIndex.file) {
+        vscode.window.showInformationMessage("No CODEOWNERS file found in this workspace.");
+        return;
+      }
+
+      const teams = extractAllTeams();
+      if (teams.length === 0) {
+        vscode.window.showInformationMessage("No teams found in CODEOWNERS.");
+        return;
+      }
+
+      // Show quick pick of teams
+      const selectedTeam = await vscode.window.showQuickPick(
+        teams.map((team) => {
+          const config = getTeamConfig(team);
+          return {
+            label: team,
+            description: config?.displayName || undefined,
+            detail: config?.description || undefined,
+          };
+        }),
+        {
+          placeHolder: "Select new team owner",
+          matchOnDescription: true,
+          matchOnDetail: true,
+        },
+      );
+
+      if (!selectedTeam) return;
+
+      const currentMatch = ownersFor(rel);
+      const result = await applyOwnershipChange(
+        codeownersIndex.file,
+        rel,
+        selectedTeam.label,
+        currentMatch,
+      );
+
+      if (result.success) {
+        // Reload the index
+        codeownersIndex = { entries: [] };
+        fileCache.clear();
+        await ensureIndexLoaded();
+        updateFooter();
+
+        vscode.window.showInformationMessage(`✅ ${result.message}`);
+      } else {
+        vscode.window.showErrorMessage(`❌ ${result.message}`);
+      }
+    },
+  );
+
+  context.subscriptions.push(changeOwnershipDisposable);
+
   // Add CodeLens provider
   const enableCodeLens = config.get<boolean>("enableCodeLens", true);
   if (enableCodeLens) {
@@ -397,6 +471,101 @@ function getTeamConfig(team: string): TeamConfig | undefined {
   const config = vscode.workspace.getConfiguration("codeowners");
   const teams = config.get<Record<string, TeamConfig>>("teams", {});
   return teams[team];
+}
+
+// Apply ownership change to CODEOWNERS file
+async function applyOwnershipChange(
+  codeownersPath: string,
+  filePath: string,
+  newOwner: string,
+  currentMatch: OwnersMatch | undefined,
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const content = fs.readFileSync(codeownersPath, "utf8");
+    const lines = content.split(/\r?\n/);
+
+    // Case 1: Exact match exists - update inline
+    if (currentMatch && isExactMatch(currentMatch.pattern, filePath)) {
+      // Find the line and update it
+      const lineIndex = currentMatch.line - 1;
+      if (lineIndex >= 0 && lineIndex < lines.length) {
+        // Show preview
+        const oldLine = lines[lineIndex];
+        const newLine = `${currentMatch.pattern} ${newOwner}`;
+
+        const confirm = await vscode.window.showWarningMessage(
+          `Update existing rule?\n\nOld: ${oldLine}\nNew: ${newLine}`,
+          { modal: true },
+          "Update",
+          "Cancel",
+        );
+
+        if (confirm !== "Update") {
+          return { success: false, message: "Cancelled by user" };
+        }
+
+        lines[lineIndex] = newLine;
+        fs.writeFileSync(codeownersPath, lines.join("\n"), "utf8");
+        return {
+          success: true,
+          message: `Updated ownership for ${currentMatch.pattern} to ${newOwner}`,
+        };
+      }
+    }
+
+    // Case 2 & 3: Add specific override at the end
+    // (either glob match or no match at all)
+    const newLine = `${filePath} ${newOwner}`;
+
+    const action = currentMatch
+      ? `Override glob pattern (${currentMatch.pattern})`
+      : "Add new ownership rule";
+
+    const confirm = await vscode.window.showWarningMessage(
+      `${action}?\n\nAdd to CODEOWNERS:\n${newLine}`,
+      { modal: true },
+      "Add",
+      "Cancel",
+    );
+
+    if (confirm !== "Add") {
+      return { success: false, message: "Cancelled by user" };
+    }
+
+    // Add at the end (with proper newline handling)
+    const lastLine = lines[lines.length - 1];
+    if (lastLine && lastLine.trim() !== "") {
+      lines.push(""); // Add blank line if file doesn't end with one
+    }
+    lines.push(newLine);
+
+    fs.writeFileSync(codeownersPath, lines.join("\n"), "utf8");
+    return {
+      success: true,
+      message: currentMatch
+        ? `Added specific override for ${filePath} (was: ${currentMatch.pattern})`
+        : `Added ownership for ${filePath}`,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Failed to update CODEOWNERS: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+// Check if a pattern is an exact match (not a glob)
+function isExactMatch(pattern: string, filePath: string): boolean {
+  // Remove leading slash for comparison
+  const normalizedPattern = pattern.startsWith("/") ? pattern.slice(1) : pattern;
+
+  // If pattern has glob characters, it's not exact
+  if (/[*?[\]]/.test(pattern)) {
+    return false;
+  }
+
+  // Check if the pattern matches the file path exactly
+  return normalizedPattern === filePath;
 }
 
 function ownersFor(relPathFromRoot: string): OwnersMatch | undefined {
