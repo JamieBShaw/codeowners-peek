@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "pnpm",
+      "script": "build",
+      "label": "pnpm: build",
+      "group": "build",
+      "problemMatcher": ["$tsc"]
+    }
+  ]
+}

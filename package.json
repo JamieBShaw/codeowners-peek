@@ -1,0 +1,92 @@
+{
+  "name": "codeowners-peek",
+  "version": "1.0.0",
+  "description": "Show CODEOWNERS for the active file (status bar, CodeLens, Explorer badge).",
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "pnpm run build",
+    "build": "pnpm run check && node build.js",
+    "watch": "tsc -w -p ./",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "check": "biome check .",
+    "build:vsix": "pnpm run build && vsce package --no-dependencies --allow-missing-repository --baseContentUrl https://github.com/JamieBShaw/codeowners-peek/raw/main"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "minimatch": "^10.0.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.2.6",
+    "@types/minimatch": "^6.0.0",
+    "@types/node": "^24.9.1",
+    "esbuild": "^0.25.11",
+    "husky": "^8.0.0",
+    "typescript": "^5.9.3",
+    "vsce": "^2.15.0",
+    "vscode": "^1.1.37"
+  },
+  "displayName": "Codeowners Peek",
+  "publisher": "your-name-or-org",
+  "icon": "assets/icon-128.png",
+  "galleryBanner": {
+    "color": "#ffffff",
+    "theme": "light"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished",
+    "onCommand:codeowners.peek",
+    "onCommand:codeowners.copyOwners"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "codeowners.peek",
+        "title": "CODEOWNERS: Show Owners for File"
+      },
+      {
+        "command": "codeowners.copyOwners",
+        "title": "CODEOWNERS: Copy Owners"
+      }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Codeowners Peek",
+      "properties": {
+        "codeowners.path": {
+          "type": "array",
+          "default": [
+            "CODEOWNERS",
+            ".github/CODEOWNERS",
+            "docs/CODEOWNERS",
+            ".gitlab/CODEOWNERS"
+          ],
+          "description": "Search order for CODEOWNERS files from workspace root."
+        },
+        "codeowners.enableStatusBar": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show owners in the status bar."
+        },
+        "codeowners.enableCodeLens": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show a CodeLens with owners at the top of files."
+        },
+        "codeowners.enableExplorerBadges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show ownership badge and tooltip in the Explorer."
+        }
+      }
+    }
+  }
+}
