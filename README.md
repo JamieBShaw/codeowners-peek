@@ -6,7 +6,7 @@
 
 **Instantly see who owns the code you're reading**
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/JamieBShaw/codeowners-peek)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/JamieBShaw/codeowners-peek)
 [![License](https://img.shields.io/badge/license-ISC-green.svg)](./LICENSE)
 [![GitHub](https://img.shields.io/github/stars/JamieBShaw/codeowners-peek?style=social)](https://github.com/JamieBShaw/codeowners-peek)
 
@@ -15,6 +15,13 @@
 ---
 
 **Codeowners Peek** is a lightweight Cursor/VS Code extension that surfaces CODEOWNERS for the currently focused file—in a small status bar item, CodeLens at the top of files, and via command palette actions. It parses your repository's CODEOWNERS file, applies GitHub's "last match wins" rule, and shows the resolved owners instantly.
+
+## 🎉 What's New in v1.2
+
+- **🔄 Change Ownership**: Directly mutate CODEOWNERS with smart pattern detection
+- **👥 Team Registry**: View all teams with statistics and optional metadata
+- **💡 Ownership Suggestions**: Get smart pattern suggestions for reassigning files
+- **⚙️ Team Metadata**: Configure display names, Slack channels, and descriptions
 
 ## Why Use This?
 
@@ -61,6 +68,45 @@ Shows a notification with:
 
 #### `CODEOWNERS: Copy Owners`
 One-click copy of the owners to your clipboard—perfect for pasting into Slack or PR descriptions.
+
+#### `CODEOWNERS: Show All Teams` 🆕
+View all teams/owners found in your CODEOWNERS file with statistics:
+- Lists all unique teams from CODEOWNERS
+- Shows how many patterns each team owns
+- Displays optional metadata (display names, Slack channels) if configured
+- Helps discover which teams exist in your codebase
+
+#### `CODEOWNERS: Suggest Ownership Change` 🆕
+Get smart suggestions for changing file ownership without modifying files:
+- Quick-pick menu of all available teams
+- Shows current ownership of the file
+- Generates a suggested CODEOWNERS pattern
+- Copy to clipboard or jump to CODEOWNERS to paste
+- Safe, read-only approach—you control when to apply changes
+
+#### `CODEOWNERS: Change Ownership (Mutate File)` 🆕
+Directly update your CODEOWNERS file with intelligent mutation:
+- **Exact match**: Updates the existing line inline
+- **Glob match**: Adds a specific override at the bottom
+- **No match**: Adds a new ownership rule at the bottom
+- Preview and confirmation before any changes
+- Automatically reloads CODEOWNERS after mutation
+- Respects "last match wins" rule by adding overrides at the end
+
+### 👥 Team Metadata (Optional)
+Configure rich metadata for your teams in settings:
+```jsonc
+{
+  "codeowners.teams": {
+    "@org/platform": {
+      "displayName": "Platform Team",
+      "slack": "#team-platform",
+      "description": "Infrastructure & tooling"
+    }
+  }
+}
+```
+This metadata appears in team pickers and the "Show All Teams" view!
 
 ### 🔄 Auto-Refresh
 The extension watches your CODEOWNERS file and automatically reloads when it changes. No need to restart VS Code after updating ownership rules.
@@ -137,7 +183,21 @@ Open your VS Code settings and search for "Codeowners" to customize:
   "codeowners.enableCodeLens": true,
 
   // Show ownership badges in the Explorer (default: true, coming soon)
-  "codeowners.enableExplorerBadges": true
+  "codeowners.enableExplorerBadges": true,
+
+  // Optional: Add metadata for teams (display names, Slack channels, descriptions)
+  "codeowners.teams": {
+    "@org/platform": {
+      "displayName": "Platform Team",
+      "slack": "#team-platform",
+      "description": "Infrastructure & tooling"
+    },
+    "@org/security": {
+      "displayName": "Security Team",
+      "slack": "#security",
+      "description": "Auth, encryption, compliance"
+    }
+  }
 }
 ```
 
@@ -177,18 +237,25 @@ Open your VS Code settings and search for "Codeowners" to customize:
 ## Known Limitations
 
 - **Single workspace root**: Multi-root workspaces are not yet supported (uses the first workspace folder)
-- **Read-only**: The extension doesn't edit CODEOWNERS—it only reads and points to lines
 - **Pattern edge cases**: Matching mirrors GitHub behavior, but unusual edge cases may need tuning
 - **Explorer badges**: Currently not implemented due to VS Code API limitations (on roadmap)
+- **Single file mutation only**: The "Change Ownership" command works on one file at a time (bulk changes coming soon)
 
 ## Roadmap
 
-### Near-term (High Value, Low Effort)
-- [x] Copy owners command (one-click clipboard) ✅ **Done**
-- [x] Jump to matching line in CODEOWNERS ✅ **Done**
-- [x] Auto-refresh on CODEOWNERS changes ✅ **Done**
-- [x] CodeLens integration ✅ **Done**
+### Completed ✅
+- [x] Copy owners command (one-click clipboard)
+- [x] Jump to matching line in CODEOWNERS
+- [x] Auto-refresh on CODEOWNERS changes
+- [x] CodeLens integration
+- [x] Show all teams with statistics
+- [x] Suggest ownership changes
+- [x] Direct CODEOWNERS mutation with preview
+- [x] Team metadata configuration
+
+### Near-term
 - [ ] Explorer badges: show owners as tooltip/badge in file tree
+- [ ] Bulk ownership changes (multiple files at once)
 - [ ] Settings UI: configure which features are enabled
 
 ### Medium-term
