@@ -361,6 +361,28 @@ Contributions are welcome! Please:
 - **minimatch** - Glob pattern matching (battle-tested, widely used)
 - **VS Code Extension API** - Native integration with editor features
 
+## Changelog
+
+### v1.2.0 (Latest)
+- 🔄 **Change Ownership (Mutate File)** - Directly update CODEOWNERS with smart mutation strategies
+- Three intelligent mutation modes: inline update, glob override, and new rule addition
+- Preview and confirmation dialogs before any file changes
+- Auto-reload after mutation
+
+### v1.1.0
+- 👥 **Show All Teams** - View all teams with pattern counts and metadata
+- 💡 **Suggest Ownership Change** - Get smart suggestions without file mutation
+- ⚙️ **Team Metadata Configuration** - Add display names, Slack channels, and descriptions
+- Team statistics and enhanced team picker UI
+
+### v1.0.0
+- 📊 Status bar integration showing current file owners
+- 🔍 CodeLens at top of files
+- 📋 Copy owners to clipboard
+- 🔗 Jump to matching CODEOWNERS line
+- 🔄 Auto-refresh on CODEOWNERS changes
+- ⚙️ Configurable status bar and CodeLens
+
 ## License
 
 ISC
