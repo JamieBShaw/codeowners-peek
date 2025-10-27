@@ -1,0 +1,9 @@
+# Test CODEOWNERS file for mutation tests
+
+* @team/default
+
+/src/app.ts @team/backend
+/src/utils/ @team/platform
+
+# This file will be mutated during tests
+

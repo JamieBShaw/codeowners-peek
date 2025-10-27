@@ -5,10 +5,12 @@
     "outDir": "out",
     "lib": ["ES2020"],
     "sourceMap": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "types": ["node", "mocha"]
   },
-  "include": ["src"]
+  "include": ["src", "test"],
+  "exclude": ["node_modules", ".vscode-test"]
 }

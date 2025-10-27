@@ -1,0 +1,44 @@
+# Test CODEOWNERS file for integration tests
+
+# Default owner
+* @team/default
+
+# System files
+.github/ @team/core
+.gitlab/ @team/core
+LICENSE @team/legal
+
+# Source directories
+/src/ @team/engineering
+/src/api/ @team/backend
+/src/api/auth/ @team/security
+/src/frontend/ @team/frontend
+/src/frontend/components/ @team/frontend @team/design
+
+# Specific files
+/src/config.ts @team/devops
+/src/api/auth/login.ts @team/security @team/backend
+
+# Glob patterns
+*.md @team/docs
+*.test.ts @team/qa
+/src/**/*.spec.ts @team/qa
+
+# Package directories
+/packages/core/ @team/platform
+/packages/auth/ @team/security
+/packages/utils/ @team/platform
+
+# Without trailing slash (should match directory and contents)
+/scripts @team/devops
+
+# Pattern-only lines (should be skipped)
+/docs/drafts
+/temp
+
+# Complex glob
+/src/**/internal/**/*.ts @team/core
+
+# Last match wins - override example
+/src/api/auth/legacy.ts @team/legacy
+

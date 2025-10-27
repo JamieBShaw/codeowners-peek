@@ -1,9 +1,14 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { type MinimatchOptions, minimatch } from "minimatch";
 import * as vscode from "vscode";
-
-type OwnersMatch = { pattern: string; owners: string[]; line: number };
+import {
+  extractAllTeams,
+  findOwnersForPath,
+  getTeamStats,
+  isExactMatch,
+  type OwnersMatch,
+  parseCodeOwners,
+} from "./lib";
 
 let codeownersIndex: { file?: string; entries: OwnersMatch[] } = { entries: [] };
 let statusItem: vscode.StatusBarItem;
@@ -59,9 +64,14 @@ export function activate(context: vscode.ExtensionContext) {
     const selection = await vscode.window.showInformationMessage(message, ...actions);
 
     if (selection === "Open CODEOWNERS" && codeownersIndex.file) {
+      // Re-check the match in case the file was modified
+      await ensureIndexLoaded();
+      const freshMatch = ownersFor(rel);
+      const lineToNavigate = freshMatch ? freshMatch.line : match.line;
+
       const doc = await vscode.workspace.openTextDocument(codeownersIndex.file);
       const editor = await vscode.window.showTextDocument(doc);
-      const position = new vscode.Position(match.line - 1, 0);
+      const position = new vscode.Position(lineToNavigate - 1, 0);
       editor.selection = new vscode.Selection(position, position);
       editor.revealRange(new vscode.Range(position, position));
     } else if (selection === "Copy Owners") {
@@ -116,8 +126,8 @@ export function activate(context: vscode.ExtensionContext) {
       return;
     }
 
-    const teams = extractAllTeams();
-    const stats = getTeamStats();
+    const teams = extractAllTeams(codeownersIndex.entries);
+    const stats = getTeamStats(codeownersIndex.entries);
 
     // Create output
     const output = teams
@@ -161,7 +171,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const teams = extractAllTeams();
+      const teams = extractAllTeams(codeownersIndex.entries);
       if (teams.length === 0) {
         vscode.window.showInformationMessage("No teams found in CODEOWNERS.");
         return;
@@ -248,7 +258,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      const teams = extractAllTeams();
+      const teams = extractAllTeams(codeownersIndex.entries);
       if (teams.length === 0) {
         vscode.window.showInformationMessage("No teams found in CODEOWNERS.");
         return;
@@ -417,47 +427,10 @@ async function ensureIndexLoaded() {
     const abs = path.join(root, rel);
     if (fs.existsSync(abs) && fs.statSync(abs).isFile()) {
       const content = fs.readFileSync(abs, "utf8");
-      codeownersIndex = { file: abs, entries: parseCODEOWNERS(content) };
+      codeownersIndex = { file: abs, entries: parseCodeOwners(content) };
       break;
     }
   }
-}
-
-function parseCODEOWNERS(content: string): OwnersMatch[] {
-  const lines = content.split(/\r?\n/);
-  const out: OwnersMatch[] = [];
-  lines.forEach((raw, idx) => {
-    const line = raw.trim();
-    if (!line || line.startsWith("#")) return;
-    const parts = line.split(/\s+/).filter(Boolean);
-    if (parts.length < 2) return;
-    const pattern = parts[0];
-    const owners = parts.slice(1);
-    out.push({ pattern, owners, line: idx + 1 });
-  });
-  return out;
-}
-
-// Extract all unique teams/owners from CODEOWNERS
-function extractAllTeams(): string[] {
-  const teams = new Set<string>();
-  for (const entry of codeownersIndex.entries) {
-    for (const owner of entry.owners) {
-      teams.add(owner);
-    }
-  }
-  return Array.from(teams).sort();
-}
-
-// Get statistics about team ownership patterns
-function getTeamStats(): Map<string, number> {
-  const stats = new Map<string, number>();
-  for (const entry of codeownersIndex.entries) {
-    for (const owner of entry.owners) {
-      stats.set(owner, (stats.get(owner) || 0) + 1);
-    }
-  }
-  return stats;
 }
 
 // Get team configuration from settings (optional metadata)
@@ -481,7 +454,8 @@ async function applyOwnershipChange(
   currentMatch: OwnersMatch | undefined,
 ): Promise<{ success: boolean; message: string }> {
   try {
-    const content = fs.readFileSync(codeownersPath, "utf8");
+    const doc = await vscode.workspace.openTextDocument(codeownersPath);
+    const content = doc.getText();
     const lines = content.split(/\r?\n/);
 
     // Case 1: Exact match exists - update inline
@@ -504,12 +478,20 @@ async function applyOwnershipChange(
           return { success: false, message: "Cancelled by user" };
         }
 
-        lines[lineIndex] = newLine;
-        fs.writeFileSync(codeownersPath, lines.join("\n"), "utf8");
-        return {
-          success: true,
-          message: `Updated ownership for ${currentMatch.pattern} to ${newOwner}`,
-        };
+        // Use WorkspaceEdit to modify the document
+        const edit = new vscode.WorkspaceEdit();
+        const lineRange = doc.lineAt(lineIndex).range;
+        edit.replace(doc.uri, lineRange, newLine);
+        const success = await vscode.workspace.applyEdit(edit);
+
+        if (success) {
+          await doc.save();
+          return {
+            success: true,
+            message: `Updated ownership for ${currentMatch.pattern} to ${newOwner}`,
+          };
+        }
+        return { success: false, message: "Failed to apply edit" };
       }
     }
 
@@ -532,20 +514,33 @@ async function applyOwnershipChange(
       return { success: false, message: "Cancelled by user" };
     }
 
-    // Add at the end (with proper newline handling)
-    const lastLine = lines[lines.length - 1];
-    if (lastLine && lastLine.trim() !== "") {
-      lines.push(""); // Add blank line if file doesn't end with one
-    }
-    lines.push(newLine);
+    // Add at the end using WorkspaceEdit
+    const edit = new vscode.WorkspaceEdit();
+    const lastLineNumber = doc.lineCount - 1;
+    const lastLine = doc.lineAt(lastLineNumber);
+    const endPosition = lastLine.range.end;
 
-    fs.writeFileSync(codeownersPath, lines.join("\n"), "utf8");
-    return {
-      success: true,
-      message: currentMatch
-        ? `Added specific override for ${filePath} (was: ${currentMatch.pattern})`
-        : `Added ownership for ${filePath}`,
-    };
+    let textToInsert = newLine;
+    // Add newline before if the last line isn't empty
+    if (lastLine.text.trim() !== "") {
+      textToInsert = `\n\n${newLine}`;
+    } else if (!lastLine.text) {
+      textToInsert = `\n${newLine}`;
+    }
+
+    edit.insert(doc.uri, endPosition, textToInsert);
+    const success = await vscode.workspace.applyEdit(edit);
+
+    if (success) {
+      await doc.save();
+      return {
+        success: true,
+        message: currentMatch
+          ? `Added specific override for ${filePath} (was: ${currentMatch.pattern})`
+          : `Added ownership for ${filePath}`,
+      };
+    }
+    return { success: false, message: "Failed to apply edit" };
   } catch (error) {
     return {
       success: false,
@@ -554,57 +549,16 @@ async function applyOwnershipChange(
   }
 }
 
-// Check if a pattern is an exact match (not a glob)
-function isExactMatch(pattern: string, filePath: string): boolean {
-  // Remove leading slash for comparison
-  const normalizedPattern = pattern.startsWith("/") ? pattern.slice(1) : pattern;
-
-  // If pattern has glob characters, it's not exact
-  if (/[*?[\]]/.test(pattern)) {
-    return false;
-  }
-
-  // Check if the pattern matches the file path exactly
-  return normalizedPattern === filePath;
-}
-
-function ownersFor(relPathFromRoot: string): OwnersMatch | undefined {
+export function ownersFor(relPathFromRoot: string): OwnersMatch | undefined {
   // Check cache first
   const cached = fileCache.get(relPathFromRoot);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.match;
   }
 
-  let winner: OwnersMatch | undefined;
-  for (const e of codeownersIndex.entries) {
-    if (patternMatches(e.pattern, relPathFromRoot)) winner = e; // last match wins
-  }
+  const winner = findOwnersForPath(relPathFromRoot, codeownersIndex.entries);
 
   // Cache the result
   fileCache.set(relPathFromRoot, { match: winner, timestamp: Date.now() });
   return winner;
-}
-
-function patternMatches(pattern: string, relPath: string): boolean {
-  const p = relPath.replace(/\\/g, "/");
-  let pat = pattern.replace(/\\/g, "/").replace(/^\.\//, "");
-  const opts: MinimatchOptions = { dot: true, nocase: false, nocomment: true };
-
-  // If pattern ends with "/", treat as "this dir and everything inside"
-  if (pat.endsWith("/")) {
-    pat = `${pat}**`;
-  }
-
-  // If no glob chars, treat as path prefix (directory) or exact file
-  const hasGlob = /[*?[\]]/.test(pat);
-  if (!hasGlob) {
-    const norm = pat.startsWith("/") ? pat.slice(1) : pat;
-    return p === norm || p.startsWith(norm.endsWith("/") ? norm : `${norm}/`);
-  }
-
-  if (pat.startsWith("/")) {
-    return minimatch(`/${p}`, pat, opts);
-  } else {
-    return minimatch(p, pat, opts) || minimatch(p, `**/${pat}`, opts);
-  }
 }
