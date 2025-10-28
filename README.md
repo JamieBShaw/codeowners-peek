@@ -1,6 +1,6 @@
 <div align="center">
 
-![Codeowners Peek Banner](./assets/banner-1280x640-light.png)
+<img src="./assets/banner-1280x640-light.png" alt="Codeowners Peek Banner" />
 
 # Codeowners Peek
 
@@ -22,6 +22,22 @@
 - **👥 Team Registry**: View all teams with statistics and optional metadata
 - **💡 Ownership Suggestions**: Get smart pattern suggestions for reassigning files
 - **⚙️ Team Metadata**: Configure display names, Slack channels, and descriptions
+
+## Installation
+
+### Build from Source
+
+```bash
+# Build and package the extension
+pnpm run build:vsix
+
+# This creates codeowners-peek-*.vsix
+```
+
+To install the built VSIX file, simply right-click the `.vsix` file and click **"Install Extension VSIX"**.
+
+### From Marketplace (Coming Soon)
+Search for "Codeowners Peek" in the Extensions marketplace and click Install.
 
 ## Why Use This?
 
@@ -115,19 +131,6 @@ The extension watches your CODEOWNERS file and automatically reloads when it cha
 - Results are cached for 30 seconds to minimize file system access
 - Lightweight parsing with minimal overhead
 - No impact on editor performance
-
-## Installation
-
-### From VSIX (Local Development)
-1. Download the `.vsix` file
-2. In VS Code: `Extensions` → `…` menu → `Install from VSIX...`
-3. Select the downloaded `.vsix` file
-4. Reload VS Code when prompted
-
-Or right click `.vsix` file and click "Install Extension VSIX"
-
-### From Marketplace (Coming Soon)
-Search for "Codeowners Peek" in the Extensions marketplace and click Install.
 
 ## Usage
 
@@ -309,17 +312,6 @@ pnpm run watch
 2. Press `F5` to launch Extension Development Host
 3. Open a workspace with a CODEOWNERS file
 4. Test the features!
-
-### Building VSIX
-
-```bash
-# Build and package the extension
-pnpm run build:vsix
-
-# This creates codeowners-peek-*.vsix
-```
-
-To install the built VSIX file, simply right-click the `.vsix` file and click **"Install Extension VSIX"**.
 
 ### Code Quality
 
