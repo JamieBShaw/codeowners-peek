@@ -313,11 +313,13 @@ pnpm run watch
 ### Building VSIX
 
 ```bash
-# Package the extension
-pnpm vsce package
+# Build and package the extension
+pnpm run build:vsix
 
-# This creates codeowners-peek-1.0.0.vsix
+# This creates codeowners-peek-*.vsix
 ```
+
+To install the built VSIX file, simply right-click the `.vsix` file and click **"Install Extension VSIX"**.
 
 ### Code Quality
 
