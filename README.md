@@ -16,13 +16,6 @@
 
 **Codeowners Peek** is a lightweight Cursor/VS Code extension that surfaces CODEOWNERS for the currently focused file—in a small status bar item, CodeLens at the top of files, and via command palette actions. It parses your repository's CODEOWNERS file, applies GitHub's "last match wins" rule, and shows the resolved owners instantly.
 
-## 🎉 What's New in v1.2
-
-- **🔄 Change Ownership**: Directly mutate CODEOWNERS with smart pattern detection
-- **👥 Team Registry**: View all teams with statistics and optional metadata
-- **💡 Ownership Suggestions**: Get smart pattern suggestions for reassigning files
-- **⚙️ Team Metadata**: Configure display names, Slack channels, and descriptions
-
 ## Installation
 
 ### Build from Source
@@ -85,14 +78,14 @@ Shows a notification with:
 #### `CODEOWNERS: Copy Owners`
 One-click copy of the owners to your clipboard—perfect for pasting into Slack or PR descriptions.
 
-#### `CODEOWNERS: Show All Teams` 🆕
+#### `CODEOWNERS: Show All Teams`
 View all teams/owners found in your CODEOWNERS file with statistics:
 - Lists all unique teams from CODEOWNERS
 - Shows how many patterns each team owns
 - Displays optional metadata (display names, Slack channels) if configured
 - Helps discover which teams exist in your codebase
 
-#### `CODEOWNERS: Suggest Ownership Change` 🆕
+#### `CODEOWNERS: Suggest Ownership Change`
 Get smart suggestions for changing file ownership without modifying files:
 - Quick-pick menu of all available teams
 - Shows current ownership of the file
@@ -100,7 +93,7 @@ Get smart suggestions for changing file ownership without modifying files:
 - Copy to clipboard or jump to CODEOWNERS to paste
 - Safe, read-only approach—you control when to apply changes
 
-#### `CODEOWNERS: Change Ownership (Mutate File)` 🆕
+#### `CODEOWNERS: Change Ownership (Mutate File)`
 Directly update your CODEOWNERS file with intelligent mutation:
 - **Exact match**: Updates the existing line inline
 - **Glob match**: Adds a specific override at the bottom
@@ -131,6 +124,20 @@ The extension watches your CODEOWNERS file and automatically reloads when it cha
 - Results are cached for 30 seconds to minimize file system access
 - Lightweight parsing with minimal overhead
 - No impact on editor performance
+
+## 🚀 Upcoming Features
+
+### 📍 Smart Section Placement
+When mutating CODEOWNERS, specify which section of the file to add new rules to—not just the bottom. Organize your ownership rules with comments and sections, and add new entries exactly where they belong.
+
+### 🖱️ Context Menu Integration
+Right-click any file or directory in the Explorer and use a tooltip button to add/mutate ownership rules directly from the context menu. Works for both individual files and entire directories, making bulk ownership management seamless.
+
+### 📊 Enhanced Team Statistics
+- View detailed statistics about team ownership coverage
+- See which files each team owns
+- Track ownership distribution across your codebase
+- Export team ownership reports
 
 ## Usage
 
@@ -246,16 +253,6 @@ Open your VS Code settings and search for "Codeowners" to customize:
 
 ## Roadmap
 
-### Completed ✅
-- [x] Copy owners command (one-click clipboard)
-- [x] Jump to matching line in CODEOWNERS
-- [x] Auto-refresh on CODEOWNERS changes
-- [x] CodeLens integration
-- [x] Show all teams with statistics
-- [x] Suggest ownership changes
-- [x] Direct CODEOWNERS mutation with preview
-- [x] Team metadata configuration
-
 ### Near-term
 - [ ] Explorer badges: show owners as tooltip/badge in file tree
 - [ ] Bulk ownership changes (multiple files at once)
@@ -354,28 +351,6 @@ Contributions are welcome! Please:
 - **Biome** - Lightning-fast linting and formatting
 - **minimatch** - Glob pattern matching (battle-tested, widely used)
 - **VS Code Extension API** - Native integration with editor features
-
-## Changelog
-
-### v1.2.0 (Latest)
-- 🔄 **Change Ownership (Mutate File)** - Directly update CODEOWNERS with smart mutation strategies
-- Three intelligent mutation modes: inline update, glob override, and new rule addition
-- Preview and confirmation dialogs before any file changes
-- Auto-reload after mutation
-
-### v1.1.0
-- 👥 **Show All Teams** - View all teams with pattern counts and metadata
-- 💡 **Suggest Ownership Change** - Get smart suggestions without file mutation
-- ⚙️ **Team Metadata Configuration** - Add display names, Slack channels, and descriptions
-- Team statistics and enhanced team picker UI
-
-### v1.0.0
-- 📊 Status bar integration showing current file owners
-- 🔍 CodeLens at top of files
-- 📋 Copy owners to clipboard
-- 🔗 Jump to matching CODEOWNERS line
-- 🔄 Auto-refresh on CODEOWNERS changes
-- ⚙️ Configurable status bar and CodeLens
 
 ## License
 

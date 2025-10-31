@@ -12,6 +12,7 @@ import {
 
 let codeownersIndex: { file?: string; entries: OwnersMatch[] } = { entries: [] };
 let statusItem: vscode.StatusBarItem;
+let codeLensProvider: CodeLensProvider | undefined;
 const fileCache = new Map<string, { match: OwnersMatch | undefined; timestamp: number }>();
 const CACHE_TTL = 30000; // 30 seconds
 
@@ -298,6 +299,11 @@ export function activate(context: vscode.ExtensionContext) {
         await ensureIndexLoaded();
         updateFooter();
 
+        // Refresh CodeLens for all open files
+        if (codeLensProvider) {
+          codeLensProvider.refresh();
+        }
+
         vscode.window.showInformationMessage(`✅ ${result.message}`);
       } else {
         vscode.window.showErrorMessage(`❌ ${result.message}`);
@@ -310,7 +316,7 @@ export function activate(context: vscode.ExtensionContext) {
   // Add CodeLens provider
   const enableCodeLens = config.get<boolean>("enableCodeLens", true);
   if (enableCodeLens) {
-    const codeLensProvider = new CodeLensProvider();
+    codeLensProvider = new CodeLensProvider();
     context.subscriptions.push(
       vscode.languages.registerCodeLensProvider({ scheme: "file" }, codeLensProvider),
     );
@@ -332,7 +338,13 @@ export function activate(context: vscode.ExtensionContext) {
         // Reload CODEOWNERS when it's saved
         codeownersIndex = { entries: [] };
         fileCache.clear(); // Clear cache when CODEOWNERS changes
-        ensureIndexLoaded().then(() => updateFooter());
+        ensureIndexLoaded().then(() => {
+          updateFooter();
+          // Refresh CodeLens for all open files
+          if (codeLensProvider) {
+            codeLensProvider.refresh();
+          }
+        });
       }
     }),
   );
@@ -343,6 +355,9 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 class CodeLensProvider implements vscode.CodeLensProvider {
+  private _onDidChangeCodeLenses = new vscode.EventEmitter<void>();
+  public readonly onDidChangeCodeLenses = this._onDidChangeCodeLenses.event;
+
   async provideCodeLenses(document: vscode.TextDocument): Promise<vscode.CodeLens[]> {
     const root = workspaceRoot();
     if (!root) return [];
@@ -363,6 +378,10 @@ class CodeLensProvider implements vscode.CodeLensProvider {
     });
 
     return [codeLens];
+  }
+
+  public refresh(): void {
+    this._onDidChangeCodeLenses.fire();
   }
 }
 
@@ -497,7 +516,9 @@ async function applyOwnershipChange(
 
     // Case 2 & 3: Add specific override at the end
     // (either glob match or no match at all)
-    const newLine = `${filePath} ${newOwner}`;
+    // Add leading slash to ensure root-relative path
+    const pathWithSlash = filePath.startsWith("/") ? filePath : `/${filePath}`;
+    const newLine = `${pathWithSlash} ${newOwner}`;
 
     const action = currentMatch
       ? `Override glob pattern (${currentMatch.pattern})`
